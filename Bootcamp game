@@ -1,98 +1,144 @@
 float playerY = 300;
-float playerH = 40;
 float obstacleX = 600;
 float starX = 800;
+float cloudX = 100;
 int score = 0;
-boolean isGameOver = false; // Game Over එක පරීක්ෂා කිරීමට
+boolean isGameOver = false;
 
 void setup() {
-  size(600, 400);
+  size(800, 400); // තිරය මදක් විශාල කළා
 }
 
 void draw() {
   if (isGameOver) {
     displayGameOver();
-    return; // Game Over නම් ඉතිරි කොටස වැඩ කරන්නේ නැත
+    return;
   }
 
-  background(135, 206, 235); // අහස වැනි ලා නිල් පාටක්
-  
-  // දුම්රිය මග (Track)
-  stroke(50);
-  strokeWeight(4);
-  line(0, 350, width, 350);
-  strokeWeight(1); // නැවත සාමාන්‍ය තත්වයට
-  
-  // 1. දුම්රිය (Player - Train Engine)
-  fill(0, 0, 150); // තද නිල්
-  rect(50, playerY, 60, playerH); // දුම්රිය ඇන්ජිම
-  fill(200);
-  rect(90, playerY + 5, 15, 15); // දුම්රිය කවුළුව
-  fill(50);
-  ellipse(60, playerY + playerH, 15, 15); // රෝද
-  ellipse(100, playerY + playerH, 15, 15);
+  drawSky();      // ලස්සන අහසක්
+  drawClouds();   // පාවෙන වලාකුළු
+  drawTracks();   // යථාර්ථවාදී දුම්රිය මග
 
-  // 2. බාධකය (Obstacle - Train Wagon)
-  fill(150, 0, 0); // තද රතු පාට පෙට්ටියක්
-  rect(obstacleX, 310, 50, 40);
-  fill(50);
-  ellipse(obstacleX + 10, 350, 12, 12); // රෝද
-  ellipse(obstacleX + 40, 350, 12, 12);
+  // 1. දුම්රිය (Professional Train Design)
+  drawTrain(60, playerY);
   
-  obstacleX -= 6; // වේගය මදක් වැඩි කළා
-  if (obstacleX < -60) obstacleX = width + random(100, 400);
+  // 2. බාධකය (Cargo Wagon)
+  drawWagon(obstacleX, 310);
+  obstacleX -= 6;
+  if (obstacleX < -80) obstacleX = width + random(200, 500);
   
-  // 3. තරුව (Star)
-  fill(255, 223, 0);
-  noStroke();
-  ellipse(starX, 250, 20, 20);
-  starX -= 4;
-  if (starX < -20) starX = width + random(200, 500);
+  // 3. තරුව (Glowing Star)
+  drawStar(starX, 220);
+  starX -= 5;
+  if (starX < -20) starX = width + random(300, 600);
   
-  // 4. ලකුණු පුවරුව
-  fill(0);
-  textSize(20);
-  text("Score: " + score, 20, 40);
-  
-  // 5. ජම්ප් සහ ගුරුත්වාකර්ෂණය
-  if (playerY < 300) playerY += 3; 
+  // 4. Score UI
+  drawScoreUI();
 
-  // 6. තරුව ලබා ගැනීම (Collision with Star)
-  if (dist(80, playerY, starX, 250) < 35) {
-    score++;
-    starX = -50; 
+  // Jump & Gravity logic
+  if (playerY < 300) playerY += 4; 
+
+  // Collision Detection
+  if (dist(90, playerY + 20, starX, 220) < 40) {
+    score += 10;
+    starX = -100;
   }
-
-  // 7. බාධකයේ වැදුනහොත් (Collision with Obstacle/Wagon)
-  // දුම්රිය සහ පෙට්ටිය අතර දුර පරීක්ෂා කිරීම
-  if (obstacleX < 110 && obstacleX > 20 && playerY > 270) {
+  if (obstacleX < 120 && obstacleX > 30 && playerY > 260) {
     isGameOver = true;
   }
 }
 
-// Game Over තිරය
+// --- Graphics Functions ---
+
+void drawSky() {
+  for (int i = 0; i < height; i++) {
+    float inter = map(i, 0, height, 0, 1);
+    stroke(lerpColor(color(30, 144, 255), color(135, 206, 250), inter));
+    line(0, i, width, i);
+  }
+}
+
+void drawClouds() {
+  fill(255, 255, 255, 200);
+  noStroke();
+  ellipse(cloudX, 80, 70, 40);
+  ellipse(cloudX + 30, 70, 60, 40);
+  cloudX = (cloudX + 0.5) % width;
+}
+
+void drawTracks() {
+  stroke(100);
+  strokeWeight(5);
+  line(0, 350, width, 350); // Main rail
+  strokeWeight(2);
+  for (int i = 0; i < width; i += 40) {
+    line(i, 350, i + 10, 360); // Sleepers
+  }
+}
+
+void drawTrain(float x, float y) {
+  // Engine body
+  fill(40); rect(x, y, 80, 45, 5); // Base
+  fill(0, 100, 200); rect(x + 5, y - 20, 50, 65, 5); // Cabin
+  
+  // Chimney
+  fill(20); rect(x + 60, y - 15, 12, 20); 
+  
+  // Window
+  fill(173, 216, 230); rect(x + 10, y - 10, 20, 20);
+  
+  // Wheels
+  fill(30);
+  ellipse(x + 20, y + 45, 18, 18);
+  ellipse(x + 60, y + 45, 18, 18);
+}
+
+void drawWagon(float x, float y) {
+  fill(139, 69, 19); // Brown wagon
+  rect(x, y, 70, 40, 3);
+  stroke(100);
+  line(x, y + 10, x + 70, y + 10); // Detail line
+  noStroke();
+  fill(20);
+  ellipse(x + 15, y + 40, 15, 15);
+  ellipse(x + 55, y + 40, 15, 15);
+}
+
+void drawStar(float x, float y) {
+  fill(255, 255, 0, 200);
+  ellipse(x, y, 25, 25);
+  fill(255, 255, 255);
+  ellipse(x, y, 10, 10); // Glow effect
+}
+
+void drawScoreUI() {
+  fill(0, 0, 0, 100);
+  rect(15, 15, 140, 40, 10);
+  fill(255);
+  textSize(22);
+  text("POINTS: " + score, 30, 43);
+}
+
 void displayGameOver() {
-  background(0);
-  fill(255, 0, 0);
+  background(20, 20, 20);
   textAlign(CENTER);
-  textSize(40);
-  text("GAME OVER", width/2, height/2);
+  fill(255, 50, 50);
+  textSize(50);
+  text("MISSION FAILED", width/2, height/2 - 20);
   fill(255);
   textSize(20);
-  text("Final Score: " + score, width/2, height/2 + 40);
-  text("Press 'R' to Restart", width/2, height/2 + 80);
+  text("Final Score: " + score, width/2, height/2 + 30);
+  text("Press 'SPACE' to Try Again", width/2, height/2 + 70);
 }
 
 void keyPressed() {
-  if (key == ' ' && playerY >= 300) { // පනින්නේ බිම සිටින විට පමණයි
-    playerY -= 120;
-  }
-  
-  // නැවත ක්‍රීඩාව ආරම්භ කිරීමට
-  if ((key == 'r' || key == 'R') && isGameOver) {
-    score = 0;
-    obstacleX = 600;
-    playerY = 300;
-    isGameOver = false;
+  if (key == ' ') {
+    if (isGameOver) {
+      isGameOver = false;
+      score = 0;
+      obstacleX = width;
+    } else if (playerY >= 300) {
+      playerY -= 130;
+    }
   }
 }
