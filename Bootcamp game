@@ -1,0 +1,98 @@
+float playerY = 300;
+float playerH = 40;
+float obstacleX = 600;
+float starX = 800;
+int score = 0;
+boolean isGameOver = false; // Game Over එක පරීක්ෂා කිරීමට
+
+void setup() {
+  size(600, 400);
+}
+
+void draw() {
+  if (isGameOver) {
+    displayGameOver();
+    return; // Game Over නම් ඉතිරි කොටස වැඩ කරන්නේ නැත
+  }
+
+  background(135, 206, 235); // අහස වැනි ලා නිල් පාටක්
+  
+  // දුම්රිය මග (Track)
+  stroke(50);
+  strokeWeight(4);
+  line(0, 350, width, 350);
+  strokeWeight(1); // නැවත සාමාන්‍ය තත්වයට
+  
+  // 1. දුම්රිය (Player - Train Engine)
+  fill(0, 0, 150); // තද නිල්
+  rect(50, playerY, 60, playerH); // දුම්රිය ඇන්ජිම
+  fill(200);
+  rect(90, playerY + 5, 15, 15); // දුම්රිය කවුළුව
+  fill(50);
+  ellipse(60, playerY + playerH, 15, 15); // රෝද
+  ellipse(100, playerY + playerH, 15, 15);
+
+  // 2. බාධකය (Obstacle - Train Wagon)
+  fill(150, 0, 0); // තද රතු පාට පෙට්ටියක්
+  rect(obstacleX, 310, 50, 40);
+  fill(50);
+  ellipse(obstacleX + 10, 350, 12, 12); // රෝද
+  ellipse(obstacleX + 40, 350, 12, 12);
+  
+  obstacleX -= 6; // වේගය මදක් වැඩි කළා
+  if (obstacleX < -60) obstacleX = width + random(100, 400);
+  
+  // 3. තරුව (Star)
+  fill(255, 223, 0);
+  noStroke();
+  ellipse(starX, 250, 20, 20);
+  starX -= 4;
+  if (starX < -20) starX = width + random(200, 500);
+  
+  // 4. ලකුණු පුවරුව
+  fill(0);
+  textSize(20);
+  text("Score: " + score, 20, 40);
+  
+  // 5. ජම්ප් සහ ගුරුත්වාකර්ෂණය
+  if (playerY < 300) playerY += 3; 
+
+  // 6. තරුව ලබා ගැනීම (Collision with Star)
+  if (dist(80, playerY, starX, 250) < 35) {
+    score++;
+    starX = -50; 
+  }
+
+  // 7. බාධකයේ වැදුනහොත් (Collision with Obstacle/Wagon)
+  // දුම්රිය සහ පෙට්ටිය අතර දුර පරීක්ෂා කිරීම
+  if (obstacleX < 110 && obstacleX > 20 && playerY > 270) {
+    isGameOver = true;
+  }
+}
+
+// Game Over තිරය
+void displayGameOver() {
+  background(0);
+  fill(255, 0, 0);
+  textAlign(CENTER);
+  textSize(40);
+  text("GAME OVER", width/2, height/2);
+  fill(255);
+  textSize(20);
+  text("Final Score: " + score, width/2, height/2 + 40);
+  text("Press 'R' to Restart", width/2, height/2 + 80);
+}
+
+void keyPressed() {
+  if (key == ' ' && playerY >= 300) { // පනින්නේ බිම සිටින විට පමණයි
+    playerY -= 120;
+  }
+  
+  // නැවත ක්‍රීඩාව ආරම්භ කිරීමට
+  if ((key == 'r' || key == 'R') && isGameOver) {
+    score = 0;
+    obstacleX = 600;
+    playerY = 300;
+    isGameOver = false;
+  }
+}
