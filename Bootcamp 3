@@ -1,0 +1,196 @@
+// --- Crazy Variables ---
+float ballX, ballY, ballSize = 35;
+float speedX = 4, speedY = 5;
+float paddleX, paddleW = 100, paddleH = 15, paddleVel = 0;
+float computerX;
+int score = 0, lives = 3, level = 1;
+boolean isGameOver = false;
+
+float screenRotation = 0; // Screen එක කැරකෙන්න
+String currentEmoji = "🤪"; 
+String popupText = "";
+int popupTimer = 0;
+
+ArrayList<Particle> particles = new ArrayList<Particle>();
+
+void setup() {
+  size(400, 600);
+  resetBall();
+}
+
+void draw() {
+  if (isGameOver) {
+    displayGameOver();
+    return;
+  }
+
+  // 1. Funny Background Logic
+  pushMatrix();
+  translate(width/2, height/2);
+  rotate(screenRotation); // Screen එක ඇල කරනවා
+  translate(-width/2, -height/2);
+  
+  background(30, 150, 80); 
+  drawGrassLines();
+
+  // 2. Particles
+  for (int i = particles.size()-1; i >= 0; i--) {
+    Particle p = particles.get(i);
+    p.update();
+    p.display();
+    if (p.isDead()) particles.remove(i);
+  }
+
+  // 3. The "Drunk" Ball
+  updateBall();
+  
+  // 4. The "Slippery" Paddle
+  updatePaddles();
+
+  // 5. Chaos Collisions
+  checkCollisions();
+  popMatrix();
+
+  drawUI();
+  drawPopup();
+}
+
+void drawGrassLines() {
+  stroke(255, 20);
+  for (int i = -200; i < height + 200; i += 40) line(-200, i, width + 200, i);
+}
+
+void updateBall() {
+  // බෝලය නටනවා වගේ යන්නේ
+  ballX += speedX + cos(frameCount * 0.15) * 5; 
+  ballY += speedY;
+
+  if (ballX < 20 || ballX > width - 20) {
+    speedX *= -1.1; // වදින වාරයක් පාසා බෝලය පිස්සුවෙන් වගේ වේගවත් වෙනවා
+    createParticles(ballX, ballY, color(255, 255, 0));
+  }
+  
+  // Emoji Ball
+  textSize(ballSize);
+  textAlign(CENTER, CENTER);
+  text(currentEmoji, ballX, ballY);
+}
+
+void updatePaddles() {
+  // Slippery Physics for Player Paddle
+  float targetX = mouseX - paddleW/2;
+  float diff = targetX - paddleX;
+  paddleVel += diff * 0.05; // Acceleration
+  paddleVel *= 0.85; // Friction (ලිස්සන ගතිය)
+  paddleX += paddleVel;
+  
+  fill(255);
+  rect(paddleX, height - 40, paddleW, paddleH, 20);
+
+  // Stupid AI
+  float aiTarget = ballX - paddleW/2 + sin(frameCount * 0.05) * 100; // AI එක පපුව වෙලා වගේ හැසිරෙන්නේ
+  computerX += (aiTarget - computerX) * 0.08;
+  fill(255, 50, 50);
+  rect(computerX, 20, paddleW, paddleH, 20);
+}
+
+void checkCollisions() {
+  if (ballY > height - 55 && ballX > paddleX && ballX < paddleX + paddleW) {
+    speedY *= -1.1;
+    speedX += (ballX - (paddleX + paddleW/2)) * 0.3;
+    ballY = height - 56;
+    score += 10;
+    
+    // Funny Effects
+    paddleW = random(30, 180); // පිත්ත හිටි හැටියේ පොඩි වෙනවා හෝ ලොකු වෙනවා
+    screenRotation = random(-0.1, 0.1); // Screen එක පොඩ්ඩක් ඇල වෙනවා
+    popupText = "WOW! 💥";
+    popupTimer = 30;
+    currentEmoji = "😎";
+    createParticles(ballX, ballY, color(255));
+  }
+
+  if (ballY < 50 && ballX > computerX && ballX < computerX + paddleW) {
+    speedY *= -1.1;
+    ballY = 51;
+    popupText = "AI ATTACK! 🤖";
+    popupTimer = 30;
+    currentEmoji = "👻";
+  }
+
+  if (ballY > height) {
+    lives--;
+    screenRotation = 0; // Reset rotation
+    if (lives <= 0) isGameOver = true;
+    else resetBall();
+  } else if (ballY < 0) {
+    score += 100;
+    resetBall();
+  }
+}
+
+void resetBall() {
+  ballX = width/2;
+  ballY = height/2;
+  speedX = random(-5, 5);
+  speedY = 6;
+  paddleW = 100;
+}
+
+void drawUI() {
+  fill(0, 150);
+  noStroke();
+  rect(width/2 - 60, 5, 120, 60, 15);
+  fill(255, 255, 0);
+  textSize(20);
+  textAlign(CENTER);
+  text("LIVES: " + lives, width/2, 25);
+  text("SCORE: " + score, width/2, 50);
+}
+
+void drawPopup() {
+  if (popupTimer > 0) {
+    textSize(40);
+    fill(255, 255, 0, popupTimer * 8);
+    textAlign(CENTER);
+    text(popupText, width/2, height/2);
+    popupTimer--;
+  }
+}
+
+void displayGameOver() {
+  background(0);
+  textAlign(CENTER);
+  fill(255, 50, 50);
+  textSize(50);
+  text("FAIL! 🤡", width/2, height/2 - 20);
+  fill(255);
+  textSize(20);
+  text("You scored " + score + " points, loser!", width/2, height/2 + 30);
+  text("Click to suffer again!", width/2, height/2 + 80);
+}
+
+void mousePressed() {
+  if (isGameOver) {
+    score = 0; lives = 3;
+    isGameOver = false;
+    resetBall();
+  }
+}
+
+// Particle Class
+void createParticles(float x, float y, color c) {
+  for (int i = 0; i < 8; i++) particles.add(new Particle(x, y, c));
+}
+
+class Particle {
+  float x, y, vx, vy, alpha = 255;
+  color c;
+  Particle(float x, float y, color c) {
+    this.x = x; this.y = y; this.c = c;
+    vx = random(-4, 4); vy = random(-4, 4);
+  }
+  void update() { x += vx; y += vy; alpha -= 8; }
+  void display() { fill(c, alpha); noStroke(); ellipse(x, y, 6, 6); }
+  boolean isDead() { return alpha <= 0; }
+}
