@@ -1,16 +1,15 @@
-// --- Crazy Variables ---
-float ballX, ballY, ballSize = 30;
-float speedX = 4, speedY = 5;
-float paddleX, paddleW = 80, paddleH = 15;
+// --- Variables ---
+float ballX, ballY, ballSize = 20;
+float speedX = 3, speedY = 5;
+float paddleX, paddleW = 80, paddleH = 12;
 float computerX;
 int score = 0, lives = 3, level = 1;
 boolean isGameOver = false;
 
-// Effects
+// Effects Variables
 int hitFlash = 0;
+float paddleBounce = 0; 
 ArrayList<Particle> particles = new ArrayList<Particle>();
-String currentEmoji = "🤪"; 
-String[] emojis = {"🤪", "😎", "👻", "⚽", "🤡", "👽"};
 
 void setup() {
   size(400, 600);
@@ -23,14 +22,10 @@ void draw() {
     return;
   }
 
-  // 1. Background (Crazy Green)
-  background(30, 120, 50); 
-  if (hitFlash > 0) {
-    background(random(255), random(255), random(255)); // Hit unama pata wenas wenawa!
-    hitFlash--;
-  }
+  // 1. Field Design (Pittaniya)
+  drawField();
 
-  // 2. Particles
+  // 2. Particles Update (Ball eka wadinakota wisirena effect)
   for (int i = particles.size()-1; i >= 0; i--) {
     Particle p = particles.get(i);
     p.update();
@@ -38,82 +33,107 @@ void draw() {
     if (p.isDead()) particles.remove(i);
   }
 
-  // 3. Funny Ball Logic
+  // 3. Ball Physics & Trail
   updateBall();
   
-  // 4. Paddles
+  // 4. Paddles (Player & Smooth AI)
   updatePaddles();
 
-  // 5. Crazy Collisions
+  // 5. Collision & Leveling
   checkCollisions();
 
+  // 6. UI (Score & Lives)
   drawUI();
 }
 
+// --- Logic Functions ---
+
+void drawField() {
+  background(30, 120, 50); // Thada kola pata
+  if (hitFlash > 0) {
+    background(60, 160, 80); // Wadinakota ena light eka
+    hitFlash--;
+  }
+  
+  // Pittaniye iri
+  stroke(255, 15);
+  for (int i = 0; i < height; i += 50) line(0, i, width, i);
+  
+  // Mada ira
+  strokeWeight(2);
+  stroke(255, 40);
+  line(0, height/2, width, height/2);
+}
+
 void updateBall() {
-  // Funny movement: Ball eka yanawata amatharawa poddak wenasata nalanawa
-  ballX += speedX + sin(frameCount * 0.1) * 4; 
+  ballX += speedX;
   ballY += speedY;
 
-  // Wall bounce
-  if (ballX < 15 || ballX > width - 15) {
+  // Speed Limit (Ball eka pichchan wena eka nawaththanna)
+  speedX = constrain(speedX, -9, 9);
+  speedY = constrain(speedY, -9, 9);
+
+  // Wall Bounce
+  if (ballX < ballSize/2 || ballX > width - ballSize/2) {
     speedX *= -1;
-    currentEmoji = emojis[(int)random(emojis.length)]; // Wall eke wadinakota emoji eka wenas wenawa
     createParticles(ballX, ballY, color(255, 255, 0));
   }
   
-  // Drawing Emoji Ball
-  textSize(ballSize);
-  textAlign(CENTER, CENTER);
-  text(currentEmoji, ballX, ballY);
+  // Ball Drawing
+  noStroke();
+  fill(0, 40); // Shadow
+  ellipse(ballX+3, ballY+3, ballSize, ballSize);
+  fill(255, 255, 0); // Ball
+  ellipse(ballX, ballY, ballSize, ballSize);
 }
 
 void updatePaddles() {
-  // Player Paddle
-  paddleX = lerp(paddleX, mouseX - paddleW/2, 0.3);
+  // Player Paddle (Smooth movement)
+  paddleX = lerp(paddleX, mouseX - paddleW/2, 0.25);
+  paddleBounce = lerp(paddleBounce, 0, 0.1); 
+  
   fill(255);
-  rect(paddleX, height - 35, paddleW, paddleH, 10);
+  rect(paddleX, height - 30 - paddleBounce, paddleW, paddleH, 8);
 
-  // Drunk Computer AI (Poddak mada wenawa ball eka thawa speed weddi)
-  float targetX = ballX - paddleW/2 + random(-40, 40); 
-  computerX += (targetX - computerX) * 0.1;
-  fill(255, 50, 50);
-  rect(computerX, 20, paddleW, paddleH, 10);
+  // Computer AI (Level eka anuwa daksathawa wadi wenawa)
+  float targetX = ballX - paddleW/2;
+  computerX += (targetX - computerX) * (0.06 + (level * 0.015)); 
+  fill(220, 50, 50);
+  rect(computerX, 20, paddleW, paddleH, 8);
 }
 
 void checkCollisions() {
-  // Player Hit
-  if (ballY > height - 45 && ballX > paddleX && ballX < paddleX + paddleW) {
-    speedY *= -1.05;
-    speedX += (ballX - (paddleX + paddleW/2)) * 0.2;
-    ballY = height - 46;
+  // Player Paddle Hit
+  if (ballY > height - 35 && ballX > paddleX && ballX < paddleX + paddleW) {
+    speedY *= -1.05; // Speed up
+    float hitPoint = ballX - (paddleX + paddleW/2);
+    speedX = hitPoint * 0.2; // Wadina thana anuwa direction eka wenas wenawa
+    ballY = height - 36;
     score += 10;
     hitFlash = 3;
-    
-    // Funny: Paddle eke wadunu gaman paddle eke size eka wenas wenawa!
-    paddleW = random(40, 160); 
-    currentEmoji = emojis[(int)random(emojis.length)];
+    paddleBounce = 8;
     createParticles(ballX, ballY, color(255));
   }
 
-  // Computer Hit
-  if (ballY < 45 && ballX > computerX && ballX < computerX + paddleW) {
+  // Computer Paddle Hit
+  if (ballY < 35 && ballX > computerX && ballX < computerX + paddleW) {
     speedY *= -1.05;
-    ballY = 46;
-    currentEmoji = "😡"; // AI eka ball eka gahuwama emoji eka wenas wenawa
+    ballY = 36;
+    createParticles(ballX, ballY, color(220, 50, 50));
   }
 
-  if (score > level * 100) level++;
+  // Level Up logic
+  if (score >= level * 100) {
+    level++;
+  }
 
   // Out logic
   if (ballY > height) {
     lives--;
-    currentEmoji = "😭";
     if (lives <= 0) isGameOver = true;
     else resetBall();
   } else if (ballY < 0) {
-    score += 50;
-    currentEmoji = "😂";
+    score += 50; 
     resetBall();
   }
 }
@@ -121,37 +141,37 @@ void checkCollisions() {
 void resetBall() {
   ballX = width/2;
   ballY = height/2;
-  speedX = random(-4, 4);
-  speedY = 5;
-  paddleW = 80; // Reset paddle size
+  speedX = random(-3, 3);
+  speedY = 5 + (level * 0.5);
 }
 
 void drawUI() {
+  // Score & Level Board
   fill(0, 100);
-  rect(10, height/2 - 40, 100, 80, 15);
+  rect(10, 10, 100, 55, 10);
   fill(255);
-  textSize(16);
+  textSize(15);
   textAlign(LEFT);
-  text("SCORE: " + score, 20, height/2 - 10);
-  text("LEVEL: " + level, 20, height/2 + 20);
+  text("SCORE: " + score, 20, 32);
+  text("LEVEL: " + level, 20, 52);
   
+  // Lives Display
   textAlign(RIGHT);
-  textSize(25);
-  String hearts = "";
-  for(int i=0; i<lives; i++) hearts += "❤️";
-  text(hearts, width - 20, height/2);
+  fill(255, 100, 100);
+  text("LIVES: " + lives, width - 20, 32);
 }
 
 void displayGameOver() {
-  background(0);
+  background(10, 20, 15);
   textAlign(CENTER);
-  fill(255, 0, 0);
-  textSize(50);
-  text("YOU SUCK! 🤡", width/2, height/2 - 20); // Funny game over message
+  fill(255, 255, 0);
+  textSize(40);
+  text("GAME OVER", width/2, height/2 - 20);
   fill(255);
   textSize(20);
-  text("Score: " + score, width/2, height/2 + 30);
-  text("Click to try again, Loser!", width/2, height/2 + 70);
+  text("Score: " + score + " | Level: " + level, width/2, height/2 + 20);
+  textSize(14);
+  text("Click to Restart", width/2, height/2 + 60);
 }
 
 void mousePressed() {
@@ -162,9 +182,12 @@ void mousePressed() {
   }
 }
 
-// Particles Class
+// --- Particle System Class ---
+
 void createParticles(float x, float y, color c) {
-  for (int i = 0; i < 5; i++) particles.add(new Particle(x, y, c));
+  for (int i = 0; i < 6; i++) {
+    particles.add(new Particle(x, y, c));
+  }
 }
 
 class Particle {
@@ -172,9 +195,9 @@ class Particle {
   color c;
   Particle(float x, float y, color c) {
     this.x = x; this.y = y; this.c = c;
-    vx = random(-3, 3); vy = random(-3, 3);
+    vx = random(-2, 2); vy = random(-2, 2);
   }
-  void update() { x += vx; y += vy; alpha -= 10; }
-  void display() { fill(c, alpha); noStroke(); ellipse(x, y, 5, 5); }
+  void update() { x += vx; y += vy; alpha -= 15; }
+  void display() { fill(c, alpha); noStroke(); ellipse(x, y, 4, 4); }
   boolean isDead() { return alpha <= 0; }
 }
