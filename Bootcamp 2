@@ -1,26 +1,19 @@
-float ballX, ballY; 
-float speedX = 3, speedY = 5; 
-float paddleX;      
-float computerX;    
-int score = 0;
-int lives = 3; 
+// --- Variables ---
+float ballX, ballY, ballSize = 20;
+float speedX = 3, speedY = 5;
+float paddleX, paddleW = 80, paddleH = 12;
+float computerX;
+int score = 0, lives = 3, level = 1;
 boolean isGameOver = false;
 
-// Background image eka sandaha variable ekak
-PImage backgroundImage;
+// Effects
+int hitFlash = 0;
+float paddleBounce = 0; // Paddle eka wadinakota hallena effect eka
+ArrayList<Particle> particles = new ArrayList<Particle>();
 
 void setup() {
-  size(400, 600); // උස වැඩි තිරයක්
+  size(400, 600);
   resetBall();
-  
-  // Background image eka load karanna. Image eka project folder eke thiyenna oni.
-  // Methana use karala thiyenne mage rawal link eka. Oyalata ona nam wena image ekak use karanna.
-  backgroundImage = loadImage("https://raw.githubusercontent.com/Anand-R-08/sample-resources/main/cricket_pitch_blurred.jpg"); 
-  
-  // Image eka load una kiyala check karanna.
-  if (backgroundImage == null) {
-      println("Image not found. Make sure the file exists and is in the correct folder.");
-  }
 }
 
 void draw() {
@@ -29,109 +22,188 @@ void draw() {
     return;
   }
 
-  // 0. Background Image eka screen ekata scale karala draw karanna
-  if (backgroundImage != null) {
-    image(backgroundImage, 0, 0, width, height); // Image eka sampurna screen ekata scale karanna
-  } else {
-    background(20, 50, 80); // Image eka nathinam default background eka use karanna
+  // 1. Background & Field
+  drawField();
+
+  // 2. Particles Update
+  for (int i = particles.size()-1; i >= 0; i--) {
+    Particle p = particles.get(i);
+    p.update();
+    p.display();
+    if (p.isDead()) particles.remove(i);
+  }
+
+  // 3. Ball Physics & Visuals
+  drawBall();
+  
+  // 4. Paddles (Player & AI)
+  drawPaddles();
+
+  // 5. Collision Logic
+  checkCollisions();
+
+  // 6. Level Up Logic
+  if (score > level * 100) {
+    level++;
+    speedY *= 1.1; // Level ekak gane speed wadi wenawa
+  }
+
+  drawUI();
+}
+
+// --- Helper Functions ---
+
+void drawField() {
+  background(30, 120, 50); // Deep Grass Green
+  if (hitFlash > 0) {
+    background(50, 160, 70);
+    hitFlash--;
   }
   
-  // මැද ඉර (තිරස් අතට) - pittaniya use karana nisa penenne nathi wenna puluwan.
-  stroke(255, 50);
+  // Grass Lines
+  stroke(255, 20);
+  for (int i = 0; i < height; i += 50) {
+    line(0, i, width, i);
+  }
+  // Center Line
+  strokeWeight(3);
+  stroke(255, 40);
   line(0, height/2, width, height/2);
-  
-  // 1. බෝලය ඇඳීම සහ චලනය
-  fill(255, 255, 0); 
-  noStroke();
-  ellipse(ballX, ballY, 20, 20);
-  
+}
+
+void drawBall() {
   ballX += speedX;
   ballY += speedY;
-  
-  // වම් සහ දකුණු බිත්තිවල වැදී බෝලය හැරීම
-  if (ballX < 10 || ballX > width - 10) {
+
+  // Wall bounce
+  if (ballX < ballSize/2 || ballX > width - ballSize/2) {
     speedX *= -1;
+    createParticles(ballX, ballY, color(255, 255, 0));
   }
+
+  // Ball Design
+  noStroke();
+  fill(0, 50); // Shadow
+  ellipse(ballX+3, ballY+3, ballSize, ballSize);
+  fill(255, 255, 0); // Ball
+  ellipse(ballX, ballY, ballSize, ballSize);
+}
+
+void drawPaddles() {
+  // Player
+  paddleX = lerp(paddleX, mouseX - paddleW/2, 0.2);
+  paddleBounce = lerp(paddleBounce, 0, 0.1); // Reset bounce animation
   
-  // 2. ඔබේ පිත්ත (තිරයේ පතුලේ)
   fill(255);
-  paddleX = mouseX - 40; 
-  rect(paddleX, height - 22, 80, 12, 5); 
-  
-  // 3. පරිගණකයේ පිත්ත (තිරයේ ඉහළ)
-  if (ballX > computerX + 40) computerX += 4.5;
-  else if (ballX < computerX + 40) computerX -= 4.5;
-  rect(computerX, 10, 80, 12, 5);
-  
-  // 4. බෝලය පිත්තේ වැදීම (යට පිත්ත)
-  if (ballY > height - 25 && ballX > paddleX && ballX < paddleX + 80) {
-    speedY *= -1.1; 
-    ballY = height - 25;
+  rect(paddleX, height - 30 - paddleBounce, paddleW, paddleH, 8);
+
+  // AI Computer
+  float targetX = ballX - paddleW/2;
+  computerX += (targetX - computerX) * (0.05 + (level * 0.02)); // Level eka anuwa AI thadi wenawa
+  fill(220, 50, 50);
+  rect(computerX, 20, paddleW, paddleH, 8);
+}
+
+void checkCollisions() {
+  // Player hit
+  if (ballY > height - 35 && ballX > paddleX && ballX < paddleX + paddleW) {
+    speedY *= -1.05;
+    float diff = ballX - (paddleX + paddleW/2);
+    speedX = diff * 0.15; // Hit wena thana anuwa direction eka wenas wenawa
+    ballY = height - 36;
     score += 10;
+    hitFlash = 4;
+    paddleBounce = 10; // Visual bounce
+    createParticles(ballX, ballY, color(255));
   }
-  
-  // උඩ (පරිගණක) පිත්ත
-  if (ballY < 25 && ballX > computerX && ballX < computerX + 80) {
-    speedY *= -1.1;
-    ballY = 25;
+
+  // AI hit
+  if (ballY < 35 && ballX > computerX && ballX < computerX + paddleW) {
+    speedY *= -1;
+    ballY = 36;
+    createParticles(ballX, ballY, color(220, 50, 50));
   }
-  
-  // 5. අවුට් වීම පරීක්ෂාව
-  if (ballY > height) { 
-    lives--; 
-    if (lives <= 0) {
-      isGameOver = true;
-    } else {
-      resetBall();
-    }
-  } else if (ballY < 0) { 
-    score += 50;
+
+  // Out logic
+  if (ballY > height) {
+    lives--;
+    if (lives <= 0) isGameOver = true;
+    else resetBall();
+  } else if (ballY < 0) {
+    score += 50; // AI paradda gaththoth bonus
     resetBall();
   }
-  
-  drawUI();
 }
 
 void resetBall() {
   ballX = width/2;
   ballY = height/2;
-  speedY = 5; 
   speedX = random(-3, 3);
+  speedY = 5 + level;
 }
 
 void drawUI() {
-  textSize(22);
+  fill(0, 80);
+  noStroke();
+  rect(10, 10, 110, 60, 10);
+  
+  fill(255);
+  textSize(16);
   textAlign(LEFT);
-  // Pittaniyaka color eka nisa score eka white color eken penenawa adu wenna puluwan.
-  // E nisa green color ekak use karanna puluwan.
-  fill(0, 255, 0); 
-  text("SCORE: " + score, 20, height/2 - 20);
+  text("SCORE: " + score, 20, 30);
+  text("LEVEL: " + level, 20, 55);
   
   textAlign(RIGHT);
-  fill(255, 100, 100); 
-  text("LIVES: " + lives, width - 20, height/2 - 20);
+  fill(255, 100, 100);
+  text("LIVES: " + lives, width - 20, 30);
 }
 
 void displayGameOver() {
-  // Game Over unamath pittaniya pennenna set kala puluwan. Naththam meka default kalla keep karanna.
-  background(0);
+  background(15, 30, 20);
   textAlign(CENTER);
-  fill(255, 0, 0);
-  textSize(50);
-  text("GAME OVER", width/2, height/2);
-  
+  fill(255, 255, 0);
+  textSize(40);
+  text("GAME OVER", width/2, height/2 - 20);
   fill(255);
-  textSize(24);
-  text("Final Score: " + score, width/2, height/2 + 50);
   textSize(18);
-  text("Click to Restart", width/2, height/2 + 90);
+  text("Final Score: " + score + " | Level: " + level, width/2, height/2 + 20);
+  text("Click to Restart", width/2, height/2 + 60);
 }
 
 void mousePressed() {
-  if (isGameOver) { 
-    score = 0;
-    lives = 3;
+  if (isGameOver) {
+    score = 0; lives = 3; level = 1;
     isGameOver = false;
     resetBall();
   }
+}
+
+// --- Particle System Class ---
+
+void createParticles(float x, float y, color c) {
+  for (int i = 0; i < 8; i++) {
+    particles.add(new Particle(x, y, c));
+  }
+}
+
+class Particle {
+  float x, y, vx, vy, alpha = 255;
+  color c;
+  
+  Particle(float x, float y, color c) {
+    this.x = x; this.y = y; this.c = c;
+    vx = random(-2, 2); vy = random(-2, 2);
+  }
+  
+  void update() {
+    x += vx; y += vy; alpha -= 10;
+  }
+  
+  void display() {
+    fill(c, alpha);
+    noStroke();
+    ellipse(x, y, 4, 4);
+  }
+  
+  boolean isDead() { return alpha <= 0; }
 }
