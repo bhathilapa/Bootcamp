@@ -1,77 +1,114 @@
-float ballX, ballY; // බෝලයේ පිහිටීම
-float speedX = 5, speedY = 3; // බෝලයේ වේගය
-float paddleY; // ඔබේ පිත්තේ උස
-float computerY; // පරිගණකයේ පිත්තේ උස
-int playerScore = 0, computerScore = 0;
+float ballX, ballY; 
+float speedX = 5, speedY = 3; 
+float paddleY; 
+float computerY; 
+int score = 0;
+int lives = 3; // අපිට තියෙන චාන්ස් ගණන
+boolean isGameOver = false;
 
 void setup() {
   size(600, 400);
-  ballX = width/2;
-  ballY = height/2;
-  paddleY = height/2;
-  computerY = height/2;
+  resetBall();
 }
 
 void draw() {
-  background(30, 100, 50); // ටෙනිස් පිටියක් වැනි කොළ පැහැති පසුබිමක්
+  if (isGameOver) {
+    displayGameOver();
+    return;
+  }
+
+  background(20, 50, 80); // තද නිල් පැහැති පසුබිමක්
   
   // මැද ඉර
-  stroke(255, 100);
+  stroke(255, 50);
   line(width/2, 0, width/2, height);
   
   // 1. බෝලය ඇඳීම සහ චලනය
-  fill(255, 255, 0); // කහ පැහැති බෝලය
+  fill(255, 255, 0); 
   noStroke();
   ellipse(ballX, ballY, 20, 20);
   
   ballX += speedX;
   ballY += speedY;
   
-  // බෝලය උඩ සහ යට බිත්තිවල වැදී පරාවර්තනය වීම
+  // බිත්තිවල වැදී පරාවර්තනය වීම
   if (ballY < 10 || ballY > height - 10) {
     speedY *= -1;
   }
   
-  // 2. ඔබේ පිත්ත (ඔබ පාලනය කරන්නේ Mouse එකෙන්)
+  // 2. ඔබේ පිත්ත (Mouse)
   fill(255);
-  paddleY = mouseY - 40; // Mouse එක යන තැනට පිත්ත ගමන් කරයි
-  rect(10, paddleY, 10, 80, 5);
+  paddleY = mouseY - 40; 
+  rect(10, paddleY, 12, 80, 5);
   
-  // 3. පරිගණකයේ පිත්ත (ස්වයංක්‍රීයව බෝලය පසුපස යයි)
-  if (ballY > computerY + 40) computerY += 4;
-  else if (ballY < computerY + 40) computerY -= 4;
-  rect(width - 20, computerY, 10, 80, 5);
+  // 3. පරිගණකයේ පිත්ත (AI)
+  if (ballY > computerY + 40) computerY += 4.5;
+  else if (ballY < computerY + 40) computerY -= 4.5;
+  rect(width - 22, computerY, 12, 80, 5);
   
-  // 4. බෝලය පිතිවල වැදීම (Collision)
+  // 4. බෝලය පිතිවල වැදීම
   if (ballX < 25 && ballY > paddleY && ballY < paddleY + 80) {
-    speedX *= -1.1; // වැදුණු පසු වේගය මදක් වැඩි වේ
+    speedX *= -1.1; 
     ballX = 25;
   }
-  
   if (ballX > width - 25 && ballY > computerY && ballY < computerY + 80) {
     speedX *= -1.1;
     ballX = width - 25;
   }
   
-  // 5. ලකුණු ලබා ගැනීම
-  if (ballX < 0) {
-    computerScore++;
-    resetBall();
-  } else if (ballX > width) {
-    playerScore++;
+  // 5. ලකුණු සහ ජීවිත පාලනය
+  if (ballX < 0) { // ඔබට බෝලය මගහැරුණොත්
+    lives--; // එක ජීවිතයක් අඩු වේ
+    if (lives <= 0) {
+      isGameOver = true;
+    } else {
+      resetBall();
+    }
+  } else if (ballX > width) { // පරිගණකයට මගහැරුණොත්
+    score += 10;
     resetBall();
   }
   
-  // Score පුවරුව
-  textSize(32);
-  textAlign(CENTER);
-  text(playerScore, width/4, 50);
-  text(computerScore, 3 * width/4, 50);
+  // UI - ලකුණු සහ ජීවිත පෙන්වීම
+  drawUI();
 }
 
 void resetBall() {
   ballX = width/2;
   ballY = height/2;
-  speedX = (speedX > 0) ? -5 : 5; // පැරදුණු පැත්තට බෝලය යැවීම
+  speedX = 5; 
   speedY = random(-3, 3);
+}
+
+void drawUI() {
+  textSize(20);
+  textAlign(LEFT);
+  fill(255);
+  text("SCORE: " + score, 20, 30);
+  
+  textAlign(RIGHT);
+  fill(255, 100, 100); // රතු පාටින් ජීවිත පෙන්වීමට
+  text("LIVES: " + lives, width - 20, 30);
+}
+
+void displayGameOver() {
+  background(0);
+  textAlign(CENTER);
+  fill(255, 0, 0);
+  textSize(50);
+  text("GAME OVER", width/2, height/2);
+  
+  fill(255);
+  textSize(20);
+  text("Final Score: " + score, width/2, height/2 + 40);
+  text("Click to Restart", width/2, height/2 + 80);
+}
+
+void mousePressed() {
+  if (isGameOver) { // Game Over වූ පසු ක්ලික් කළහොත් නැවත ආරම්භ වේ
+    score = 0;
+    lives = 3;
+    isGameOver = false;
+    resetBall();
+  }
 }
