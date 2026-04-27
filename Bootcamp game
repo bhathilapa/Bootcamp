@@ -3,7 +3,7 @@ float speedX = 5, speedY = 3;
 float paddleY; 
 float computerY; 
 int score = 0;
-int lives = 3; // අපිට තියෙන චාන්ස් ගණන
+int lives = 3; 
 boolean isGameOver = false;
 
 void setup() {
@@ -17,7 +17,7 @@ void draw() {
     return;
   }
 
-  background(20, 50, 80); // තද නිල් පැහැති පසුබිමක්
+  background(20, 50, 80); 
   
   // මැද ඉර
   stroke(255, 50);
@@ -31,45 +31,45 @@ void draw() {
   ballX += speedX;
   ballY += speedY;
   
-  // බිත්තිවල වැදී පරාවර්තනය වීම
   if (ballY < 10 || ballY > height - 10) {
     speedY *= -1;
   }
   
-  // 2. ඔබේ පිත්ත (Mouse)
+  // 2. ඔබේ පිත්ත
   fill(255);
   paddleY = mouseY - 40; 
   rect(10, paddleY, 12, 80, 5);
   
-  // 3. පරිගණකයේ පිත්ත (AI)
+  // 3. පරිගණකයේ පිත්ත
   if (ballY > computerY + 40) computerY += 4.5;
   else if (ballY < computerY + 40) computerY -= 4.5;
   rect(width - 22, computerY, 12, 80, 5);
   
-  // 4. බෝලය පිතිවල වැදීම
+  // 4. බෝලය පිත්තේ වැදීම (Score එක වැඩි කරන තැන)
   if (ballX < 25 && ballY > paddleY && ballY < paddleY + 80) {
     speedX *= -1.1; 
     ballX = 25;
+    score += 10; // පිත්තේ වැදුණු ගමන් ලකුණු 10ක් එකතු වේ!
   }
+  
   if (ballX > width - 25 && ballY > computerY && ballY < computerY + 80) {
     speedX *= -1.1;
     ballX = width - 25;
   }
   
-  // 5. ලකුණු සහ ජීවිත පාලනය
-  if (ballX < 0) { // ඔබට බෝලය මගහැරුණොත්
-    lives--; // එක ජීවිතයක් අඩු වේ
+  // 5. අවුට් වීම සහ මගහැරීම
+  if (ballX < 0) { 
+    lives--; 
     if (lives <= 0) {
       isGameOver = true;
     } else {
       resetBall();
     }
-  } else if (ballX > width) { // පරිගණකයට මගහැරුණොත්
-    score += 10;
+  } else if (ballX > width) { 
+    score += 50; // පරිගණකයට මගහැරුණොත් අමතර ලකුණු 50ක්!
     resetBall();
   }
   
-  // UI - ලකුණු සහ ජීවිත පෙන්වීම
   drawUI();
 }
 
@@ -81,14 +81,14 @@ void resetBall() {
 }
 
 void drawUI() {
-  textSize(20);
+  textSize(22);
   textAlign(LEFT);
   fill(255);
-  text("SCORE: " + score, 20, 30);
+  text("SCORE: " + score, 20, 40);
   
   textAlign(RIGHT);
-  fill(255, 100, 100); // රතු පාටින් ජීවිත පෙන්වීමට
-  text("LIVES: " + lives, width - 20, 30);
+  fill(255, 100, 100); 
+  text("LIVES: " + lives, width - 20, 40);
 }
 
 void displayGameOver() {
@@ -99,13 +99,14 @@ void displayGameOver() {
   text("GAME OVER", width/2, height/2);
   
   fill(255);
-  textSize(20);
-  text("Final Score: " + score, width/2, height/2 + 40);
-  text("Click to Restart", width/2, height/2 + 80);
+  textSize(24);
+  text("Final Score: " + score, width/2, height/2 + 50);
+  textSize(18);
+  text("Click anywhere to Restart", width/2, height/2 + 90);
 }
 
 void mousePressed() {
-  if (isGameOver) { // Game Over වූ පසු ක්ලික් කළහොත් නැවත ආරම්භ වේ
+  if (isGameOver) { 
     score = 0;
     lives = 3;
     isGameOver = false;
