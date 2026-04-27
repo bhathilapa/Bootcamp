@@ -6,9 +6,9 @@ float computerX;
 int score = 0, lives = 3, level = 1;
 boolean isGameOver = false;
 
-// Effects
+// Effects Variables
 int hitFlash = 0;
-float paddleBounce = 0; // Paddle eka wadinakota hallena effect eka
+float paddleBounce = 0; 
 ArrayList<Particle> particles = new ArrayList<Particle>();
 
 void setup() {
@@ -22,10 +22,10 @@ void draw() {
     return;
   }
 
-  // 1. Background & Field
+  // 1. Field Design (Pittaniya)
   drawField();
 
-  // 2. Particles Update
+  // 2. Particles Update (Ball eka wadinakota wisirena effect)
   for (int i = particles.size()-1; i >= 0; i--) {
     Particle p = particles.get(i);
     p.update();
@@ -33,95 +33,98 @@ void draw() {
     if (p.isDead()) particles.remove(i);
   }
 
-  // 3. Ball Physics & Visuals
-  drawBall();
+  // 3. Ball Physics & Trail
+  updateBall();
   
-  // 4. Paddles (Player & AI)
-  drawPaddles();
+  // 4. Paddles (Player & Smooth AI)
+  updatePaddles();
 
-  // 5. Collision Logic
+  // 5. Collision & Leveling
   checkCollisions();
 
-  // 6. Level Up Logic
-  if (score > level * 100) {
-    level++;
-    speedY *= 1.1; // Level ekak gane speed wadi wenawa
-  }
-
+  // 6. UI (Score & Lives)
   drawUI();
 }
 
-// --- Helper Functions ---
+// --- Logic Functions ---
 
 void drawField() {
-  background(30, 120, 50); // Deep Grass Green
+  background(30, 120, 50); // Thada kola pata
   if (hitFlash > 0) {
-    background(50, 160, 70);
+    background(60, 160, 80); // Wadinakota ena light eka
     hitFlash--;
   }
   
-  // Grass Lines
-  stroke(255, 20);
-  for (int i = 0; i < height; i += 50) {
-    line(0, i, width, i);
-  }
-  // Center Line
-  strokeWeight(3);
+  // Pittaniye iri
+  stroke(255, 15);
+  for (int i = 0; i < height; i += 50) line(0, i, width, i);
+  
+  // Mada ira
+  strokeWeight(2);
   stroke(255, 40);
   line(0, height/2, width, height/2);
 }
 
-void drawBall() {
+void updateBall() {
   ballX += speedX;
   ballY += speedY;
 
-  // Wall bounce
+  // Speed Limit (Ball eka pichchan wena eka nawaththanna)
+  speedX = constrain(speedX, -9, 9);
+  speedY = constrain(speedY, -9, 9);
+
+  // Wall Bounce
   if (ballX < ballSize/2 || ballX > width - ballSize/2) {
     speedX *= -1;
     createParticles(ballX, ballY, color(255, 255, 0));
   }
-
-  // Ball Design
+  
+  // Ball Drawing
   noStroke();
-  fill(0, 50); // Shadow
+  fill(0, 40); // Shadow
   ellipse(ballX+3, ballY+3, ballSize, ballSize);
   fill(255, 255, 0); // Ball
   ellipse(ballX, ballY, ballSize, ballSize);
 }
 
-void drawPaddles() {
-  // Player
-  paddleX = lerp(paddleX, mouseX - paddleW/2, 0.2);
-  paddleBounce = lerp(paddleBounce, 0, 0.1); // Reset bounce animation
+void updatePaddles() {
+  // Player Paddle (Smooth movement)
+  paddleX = lerp(paddleX, mouseX - paddleW/2, 0.25);
+  paddleBounce = lerp(paddleBounce, 0, 0.1); 
   
   fill(255);
   rect(paddleX, height - 30 - paddleBounce, paddleW, paddleH, 8);
 
-  // AI Computer
+  // Computer AI (Level eka anuwa daksathawa wadi wenawa)
   float targetX = ballX - paddleW/2;
-  computerX += (targetX - computerX) * (0.05 + (level * 0.02)); // Level eka anuwa AI thadi wenawa
+  computerX += (targetX - computerX) * (0.06 + (level * 0.015)); 
   fill(220, 50, 50);
   rect(computerX, 20, paddleW, paddleH, 8);
 }
 
 void checkCollisions() {
-  // Player hit
+  // Player Paddle Hit
   if (ballY > height - 35 && ballX > paddleX && ballX < paddleX + paddleW) {
-    speedY *= -1.05;
-    float diff = ballX - (paddleX + paddleW/2);
-    speedX = diff * 0.15; // Hit wena thana anuwa direction eka wenas wenawa
+    speedY *= -1.05; // Speed up
+    float hitPoint = ballX - (paddleX + paddleW/2);
+    speedX = hitPoint * 0.2; // Wadina thana anuwa direction eka wenas wenawa
     ballY = height - 36;
     score += 10;
-    hitFlash = 4;
-    paddleBounce = 10; // Visual bounce
+    hitFlash = 3;
+    paddleBounce = 8;
     createParticles(ballX, ballY, color(255));
   }
 
-  // AI hit
+  // Computer Paddle Hit
   if (ballY < 35 && ballX > computerX && ballX < computerX + paddleW) {
-    speedY *= -1;
+    speedY *= -1.05;
     ballY = 36;
     createParticles(ballX, ballY, color(220, 50, 50));
+  }
+
+  // Level Up logic
+  if (score >= level * 100) {
+    level++;
   }
 
   // Out logic
@@ -130,7 +133,7 @@ void checkCollisions() {
     if (lives <= 0) isGameOver = true;
     else resetBall();
   } else if (ballY < 0) {
-    score += 50; // AI paradda gaththoth bonus
+    score += 50; 
     resetBall();
   }
 }
@@ -139,34 +142,35 @@ void resetBall() {
   ballX = width/2;
   ballY = height/2;
   speedX = random(-3, 3);
-  speedY = 5 + level;
+  speedY = 5 + (level * 0.5);
 }
 
 void drawUI() {
-  fill(0, 80);
-  noStroke();
-  rect(10, 10, 110, 60, 10);
-  
+  // Score & Level Board
+  fill(0, 100);
+  rect(10, 10, 100, 55, 10);
   fill(255);
-  textSize(16);
+  textSize(15);
   textAlign(LEFT);
-  text("SCORE: " + score, 20, 30);
-  text("LEVEL: " + level, 20, 55);
+  text("SCORE: " + score, 20, 32);
+  text("LEVEL: " + level, 20, 52);
   
+  // Lives Display
   textAlign(RIGHT);
   fill(255, 100, 100);
-  text("LIVES: " + lives, width - 20, 30);
+  text("LIVES: " + lives, width - 20, 32);
 }
 
 void displayGameOver() {
-  background(15, 30, 20);
+  background(10, 20, 15);
   textAlign(CENTER);
   fill(255, 255, 0);
   textSize(40);
   text("GAME OVER", width/2, height/2 - 20);
   fill(255);
-  textSize(18);
-  text("Final Score: " + score + " | Level: " + level, width/2, height/2 + 20);
+  textSize(20);
+  text("Score: " + score + " | Level: " + level, width/2, height/2 + 20);
+  textSize(14);
   text("Click to Restart", width/2, height/2 + 60);
 }
 
@@ -181,7 +185,7 @@ void mousePressed() {
 // --- Particle System Class ---
 
 void createParticles(float x, float y, color c) {
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 6; i++) {
     particles.add(new Particle(x, y, c));
   }
 }
@@ -189,21 +193,11 @@ void createParticles(float x, float y, color c) {
 class Particle {
   float x, y, vx, vy, alpha = 255;
   color c;
-  
   Particle(float x, float y, color c) {
     this.x = x; this.y = y; this.c = c;
     vx = random(-2, 2); vy = random(-2, 2);
   }
-  
-  void update() {
-    x += vx; y += vy; alpha -= 10;
-  }
-  
-  void display() {
-    fill(c, alpha);
-    noStroke();
-    ellipse(x, y, 4, 4);
-  }
-  
+  void update() { x += vx; y += vy; alpha -= 15; }
+  void display() { fill(c, alpha); noStroke(); ellipse(x, y, 4, 4); }
   boolean isDead() { return alpha <= 0; }
 }
