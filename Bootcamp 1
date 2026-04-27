@@ -1,0 +1,117 @@
+float ballX, ballY; 
+float speedX = 3, speedY = 5; 
+float paddleX;      
+float computerX;    
+int score = 0;
+int lives = 3; 
+boolean isGameOver = false;
+
+void setup() {
+  size(400, 600); // උස වැඩි තිරයක්
+  resetBall();
+}
+
+void draw() {
+  if (isGameOver) {
+    displayGameOver();
+    return;
+  }
+
+  background(20, 50, 80); 
+  
+  // මැද ඉර (තිරස් අතට)
+  stroke(255, 50);
+  line(0, height/2, width, height/2);
+  
+  // 1. බෝලය ඇඳීම සහ චලනය
+  fill(255, 255, 0); 
+  noStroke();
+  ellipse(ballX, ballY, 20, 20);
+  
+  ballX += speedX;
+  ballY += speedY;
+  
+  // වම් සහ දකුණු බිත්තිවල වැදී බෝලය හැරීම
+  if (ballX < 10 || ballX > width - 10) {
+    speedX *= -1;
+  }
+  
+  // 2. ඔබේ පිත්ත (තිරයේ පතුලේ)
+  fill(255);
+  paddleX = mouseX - 40; 
+  rect(paddleX, height - 22, 80, 12, 5); 
+  
+  // 3. පරිගණකයේ පිත්ත (තිරයේ ඉහළ)
+  if (ballX > computerX + 40) computerX += 4.5;
+  else if (ballX < computerX + 40) computerX -= 4.5;
+  rect(computerX, 10, 80, 12, 5);
+  
+  // 4. බෝලය පිත්තේ වැදීම (යට පිත්ත)
+  if (ballY > height - 25 && ballX > paddleX && ballX < paddleX + 80) {
+    speedY *= -1.1; 
+    ballY = height - 25;
+    score += 10;
+  }
+  
+  // උඩ (පරිගණක) පිත්ත
+  if (ballY < 25 && ballX > computerX && ballX < computerX + 80) {
+    speedY *= -1.1;
+    ballY = 25;
+  }
+  
+  // 5. අවුට් වීම පරීක්ෂාව
+  if (ballY > height) { 
+    lives--; 
+    if (lives <= 0) {
+      isGameOver = true;
+    } else {
+      resetBall();
+    }
+  } else if (ballY < 0) { 
+    score += 50;
+    resetBall();
+  }
+  
+  drawUI();
+}
+
+void resetBall() {
+  ballX = width/2;
+  ballY = height/2;
+  speedY = 5; 
+  speedX = random(-3, 3);
+}
+
+void drawUI() {
+  textSize(22);
+  textAlign(LEFT);
+  fill(255);
+  text("SCORE: " + score, 20, height/2 - 20);
+  
+  textAlign(RIGHT);
+  fill(255, 100, 100); 
+  text("LIVES: " + lives, width - 20, height/2 - 20);
+}
+
+void displayGameOver() {
+  background(0);
+  textAlign(CENTER);
+  fill(255, 0, 0);
+  textSize(50);
+  text("GAME OVER", width/2, height/2);
+  
+  fill(255);
+  textSize(24);
+  text("Final Score: " + score, width/2, height/2 + 50);
+  textSize(18);
+  text("Click to Restart", width/2, height/2 + 90);
+}
+
+void mousePressed() {
+  if (isGameOver) { 
+    score = 0;
+    lives = 3;
+    isGameOver = false;
+    resetBall();
+  }
+}
